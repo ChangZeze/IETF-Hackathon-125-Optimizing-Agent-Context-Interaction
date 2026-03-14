@@ -106,8 +106,8 @@ def call_llm_stream_full_output(prompt: str, agent_name: str) -> str:
     return "".join(parts).strip()
 
 def _normalize_agent_context(parsed: Dict[str, Any], base_context: Dict[str, Any]) -> Dict[str, Any]:
-    """规范化 Agent 返回的 AgentContext"""
-    # 合并基础上下文和解析结果
+    """Normalize AgentContext returned by agent"""
+    # Merge base context and parsed result
     normalized = {
         "AgentID": parsed.get("AgentID", base_context.get("AgentID", "")),
         "AgentName": parsed.get("AgentName", base_context.get("AgentName", "")),

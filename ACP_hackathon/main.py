@@ -66,7 +66,7 @@ GOALS: List[Dict[str, Any]] = [
 
 
 def build_task_context() -> Dict[str, Any]:
-    """构建 TaskContext - 全局任务上下文"""
+    """Build TaskContext - global task context"""
     return {
         "TaskID": "task_001",
         "UserQuery": "Complete a comparative research report on NEV companies for investment decisions",
@@ -82,14 +82,14 @@ def build_task_context() -> Dict[str, Any]:
 
 
 def build_agent_context(goal: Dict[str, Any], dep_agents: List[str], task_context: Dict[str, Any]) -> Dict[str, Any]:
-    """Master Agent 通过 LLM 为 Invoked Agent 生成 AgentContext"""
+    """Master Agent generates AgentContext for Invoked Agent via LLM"""
 
     goal_id = goal["goal_id"]
     agent_name = goal["agent"]
     task_desc = goal["task_description"]
     dependencies = goal["dependencies"]
 
-    # 获取依赖任务的关键信息（不是完整输出）
+    # Get key information from dependency tasks (not full output)
     dep_info = []
     for dep_id in dependencies:
         if dep_id in state.get("agent_contexts", {}):
@@ -143,7 +143,7 @@ Requirements:
 
     raw = response.choices[0].message.content.strip()
 
-    # 使用 agents.py 中的 JSON 提取函数
+    # Use JSON extraction function from agents.py
     from agents import _extract_json_object
     agent_context = _extract_json_object(raw)
 
@@ -169,20 +169,20 @@ state: Dict[str, Any] = {
 state_lock = threading.Lock()
 
 def execute_goal(goal: Dict[str, Any], task_context: Dict[str, Any]) -> None:
-    """执行单个 goal（线程安全）"""
+    """Execute a single goal (thread-safe)"""
     goal_id = goal["goal_id"]
     agent_name = goal["agent"]
 
     print(f"\n[master] Executing {goal_id} ({agent_name})")
 
-    # 生成 AgentContext
+    # Generate AgentContext
     agent_context = build_agent_context(goal, goal["dependencies"], task_context)
 
     print(f"[debug] Generated AgentContext for {goal_id}:")
     print(f"  todoItems: {agent_context.get('todoItems', [])}")
     print(f"  SubTaskName: {agent_context.get('SubTaskName', '')}")
 
-    # 执行任务（带重试）
+    # Execute task (with retry)
     retry_count = 0
     feedback = ""
 
@@ -230,11 +230,11 @@ task_context = build_task_context()
 print(f"[run] ENABLE_EVAL={ENABLE_EVAL}")
 reset_run_stats()
 
-# 动态并行调度：持续检查并启动就绪任务
+# Dynamic parallel scheduling: continuously check and start ready tasks
 active_threads: Dict[str, threading.Thread] = {}
 
 while len(state["completed_goals"]) < len(GOALS):
-    # 找到所有就绪且未运行的任务
+    # Find all ready and not-running tasks
     with state_lock:
         ready_goals = []
         for goal in GOALS:
@@ -251,7 +251,7 @@ while len(state["completed_goals"]) < len(GOALS):
                 ready_goals.append(goal)
                 state["running_goals"].add(goal_id)
 
-    # 启动新的就绪任务
+    # Start new ready tasks
     for goal in ready_goals:
         goal_id = goal["goal_id"]
         print(f"[master] Starting {goal_id}")
@@ -259,7 +259,7 @@ while len(state["completed_goals"]) < len(GOALS):
         thread.start()
         active_threads[goal_id] = thread
 
-    # 清理已完成的线程
+    # Clean up completed threads
     completed_threads = []
     for goal_id, thread in list(active_threads.items()):
         if not thread.is_alive():
@@ -269,16 +269,16 @@ while len(state["completed_goals"]) < len(GOALS):
     for goal_id in completed_threads:
         del active_threads[goal_id]
 
-    # 如果没有活跃线程且没有新任务，退出
+    # If no active threads and no new tasks, exit
     if not active_threads and not ready_goals:
         if len(state["completed_goals"]) < len(GOALS):
             print("[error] No active threads and no ready goals, possible deadlock")
         break
 
-    # 短暂休眠，避免忙等待
+    # Short sleep to avoid busy waiting
     time.sleep(0.1)
 
-# 等待所有剩余线程完成
+# Wait for all remaining threads to complete
 for thread in active_threads.values():
     thread.join()
 

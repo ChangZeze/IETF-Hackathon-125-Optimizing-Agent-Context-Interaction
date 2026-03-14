@@ -21,7 +21,7 @@ MAX_RETRY = 2
 
 
 def _build_eval_payload(agent_context: Dict[str, Any]) -> Dict[str, Any]:
-    """提取评估所需的结构化信息"""
+    """Extract structured information needed for evaluation"""
     return {
         "SubTaskName": agent_context.get("SubTaskName", ""),
         "todoItems": agent_context.get("todoItems", []),
